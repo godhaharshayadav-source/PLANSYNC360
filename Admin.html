@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlanSync 360 - Enterprise Control Tower</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        background: '#0B0F19', // Deep sophisticated midnight
+                        surface: '#131825',    // Slightly lighter for cards
+                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 900: '#312e81' },
+                        emerald: { 400: '#34d399', 500: '#10b981' },
+                        rose: { 400: '#fb7185', 500: '#f43f5e' },
+                        amber: { 400: '#fbbf24', 500: '#f59e0b' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { background-color: #0B0F19; color: #94a3b8; }
+        
+        /* Premium Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Smooth Tab Transitions */
+        .tab-content { display: none; animation: fadeIn 0.3s ease-out; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Premium Glass/Surface Panels */
+        .surface-panel { 
+            background: rgba(255, 255, 255, 0.02); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 0.06); 
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+        .surface-panel:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Elegant Range Slider */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: #6366f1; cursor: pointer; margin-top: -5px; border: 2px solid #0B0F19; transition: transform 0.1s; }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+        /* KPI Card Accents */
+        .kpi-accent-emerald { border-left: 3px solid #34d399; }
+        .kpi-accent-rose { border-left: 3px solid #fb7185; }
+        .kpi-accent-amber { border-left: 3px solid #fbbf24; }
+        .kpi-accent-brand { border-left: 3px solid #6366f1; }
+    </style>
+</head>
+<body class="font-sans h-screen flex overflow-hidden selection:bg-brand-500 selection:text-white antialiased">
+
+    <!-- Subtle Background Glows -->
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-brand-600/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+    <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-600/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-surface border-r border-white/5 flex flex-col justify-between hidden md:flex z-20">
+        <div>
+            <!-- Logo area -->
+            <div class="h-16 flex items-center px-6 border-b border-white/5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/20 mr-3">
+                    <i data-lucide="layers" class="text-white w-4 h-4"></i>
+                </div>
+                <h1 class="text-slate-100 font-semibold text-base tracking-wide">PlanSync <span class="text-brand-400 font-light">360</span></h1>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="p-4 space-y-1 mt-2" id="nav-menu">
+                <button onclick="switchTab('exec', this)" class="nav-btn active w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md bg-white/5 text-brand-400 transition-all duration-200">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4 mr-3 opacity-90"></i> Executive Overview
+                </button>
+                <button onclick="switchTab('demand', this)" class="nav-btn w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-400 hover:bg-white/5 hover:text-slate-200 transition-all duration-200">
+                    <i data-lucide="trending-up" class="w-4 h-4 mr-3 opacity-70"></i> Demand Planning
+                </button>
+                <button onclick="switchTab('inventory', this)" class="nav-btn w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-400 hover:bg-white/5 hover:text-slate-200 transition-all duration-200">
+                    <i data-lucide="package-search" class="w-4 h-4 mr-3 opacity-70"></i> Inventory Opt.
+                </button>
+                <button onclick="switchTab('scenario', this)" class="nav-btn w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-400 hover:bg-white/5 hover:text-slate-200 transition-all duration-200">
+                    <i data-lucide="flask-conical" class="w-4 h-4 mr-3 opacity-70"></i> Scenario Engine
+                </button>
+                <button onclick="switchTab('sop', this)" class="nav-btn w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-400 hover:bg-white/5 hover:text-slate-200 transition-all duration-200">
+                    <i data-lucide="briefcase" class="w-4 h-4 mr-3 opacity-70"></i> IBP Alignment
+                </button>
+            </nav>
+        </div>
+
+        <!-- System Status -->
+        <div class="p-6 border-t border-white/5">
+            <div class="flex items-center text-sm">
+                <span class="relative flex h-2.5 w-2.5 mr-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span class="text-slate-300 font-medium">System Online</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1 ml-5.5">Data synced 2 mins ago</p>
+        </div>
+    </aside>
+
+    <!-- MAIN WRAPPER -->
+    <main class="flex-1 flex flex-col h-screen relative overflow-hidden z-10">
+        
+        <!-- HEADER -->
+        <header class="h-16 bg-surface/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-8 z-10 sticky top-0">
+            
+            <button class="md:hidden text-slate-400 hover:text-slate-200"><i data-lucide="menu"></i></button>
+
+            <!-- Global Filters -->
+            <div class="hidden md:flex items-center space-x-3">
+                <div class="flex items-center bg-white/[0.03] rounded-md px-3 py-1.5 border border-white/5 hover:border-white/10 transition-colors">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 mr-2"></i>
+                    <select class="bg-transparent text-xs font-medium text-slate-200 outline-none cursor-pointer appearance-none w-20">
+                        <option>Last 30 Days</option>
+                        <option>Q3 2026</option>
+                        <option>YTD</option>
+                    </select>
+                </div>
+                <div class="flex items-center bg-white/[0.03] rounded-md px-3 py-1.5 border border-white/5 hover:border-white/10 transition-colors">
+                    <i data-lucide="filter" class="w-3.5 h-3.5 text-slate-400 mr-2"></i>
+                    <select class="bg-transparent text-xs font-medium text-slate-200 outline-none cursor-pointer appearance-none w-24">
+                        <option>All Categories</option>
+                        <option>Electronics</option>
+                        <option>Apparel</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Right Actions -->
+            <div class="flex items-center space-x-5">
+                <button class="text-slate-400 hover:text-slate-200 transition-colors">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </button>
+                <button class="text-slate-400 hover:text-slate-200 transition-colors relative">
+                    <i data-lucide="bell" class="w-4 h-4"></i>
+                    <span class="absolute -top-1 -right-1 w-2 h-2 bg-brand-500 rounded-full border-2 border-surface"></span>
+                </button>
+                <div class="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-slate-200 font-medium text-xs border border-white/10 cursor-pointer hover:bg-slate-700 transition-colors">
+                    JD
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTENT AREA -->
+        <div class="flex-1 overflow-y-auto p-8 scroll-smooth">
+            
+            <!-- ==========================================
+                 TAB 1: EXECUTIVE SUMMARY
+                 ========================================== -->
+            <div id="tab-exec" class="tab-content active max-w-7xl mx-auto space-y-6">
+                
+                <div class="flex justify-between items-end mb-4">
+                    <div>
+                        <h2 class="text-2xl font-semibold text-slate-100 tracking-tight">Executive Overview</h2>
+                        <p class="text-slate-400 text-sm mt-1">Holistic view of supply chain health and actionable risks.</p>
+                    </div>
+                    <button class="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-200 text-sm font-medium rounded-md flex items-center border border-white/5 transition-all">
+                        <i data-lucide="download" class="w-4 h-4 mr-2 opacity-70"></i> Export Report
+                    </button>
+                </div>
+
+                <!-- KPI Ribbon -->
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div class="surface-panel p-5 kpi-accent-brand">
+                        <p class="text-xs font-medium text-slate-400 mb-1">Service Level</p>
+                        <h3 class="text-2xl font-semibold text-slate-100">96.4%</h3>
+                        <div class="flex items-center mt-2 text-xs">
+                            <span class="text-emerald-400 flex items-center bg-emerald-400/10 px-1.5 py-0.5 rounded mr-2">
+                                <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> 1.2%
+                            </span>
+                            <span class="text-slate-500">vs Target</span>
+                        </div>
+                    </div>
+                    <div class="surface-panel p-5">
+                        <p class="text-xs font-medium text-slate-400 mb-1">Forecast Acc (MAPE)</p>
+                        <h3 class="text-2xl font-semibold text-slate-100">18.2%</h3>
+                        <div class="flex items-center mt-2 text-xs">
+                            <span class="text-emerald-400 flex items-center bg-emerald-400/10 px-1.5 py-0.5 rounded mr-2">
+                                <i data-lucide="trending-down" class="w-3 h-3 mr-1"></i> 2.1%
+                            </span>
+                            <span class="text-slate-500">vs Last Month</span>
+                        </div>
+                    </div>
+                    <div class="surface-panel p-5">
+                        <p class="text-xs font-medium text-slate-400 mb-1">Inventory Value</p>
+                        <h3 class="text-2xl font-semibold text-slate-100">₹42.5M</h3>
+                        <div class="flex items-center mt-2 text-xs">
+                            <span class="text-slate-500 flex items-center">
+                                <i data-lucide="minus" class="w-3 h-3 mr-1"></i> On Budget
+                            </span>
+                        </div>
+                    </div>
+                    <div class="surface-panel p-5">
+                        <p class="text-xs font-medium text-slate-400 mb-1">Inv Turnover</p>
+                        <h3 class="text-2xl font-semibold text-slate-100">6.8x</h3>
+                        <div class="flex items-center mt-2 text-xs">
+                            <span class="text-rose-400 flex items-center bg-rose-400/10 px-1.5 py-0.5 rounded mr-2">
+                                <i data-lucide="trending-down" class="w-3 h-3 mr-1"></i> 0.2
+                            </span>
+                            <span class="text-slate-500">Annualized</span>
+                        </div>
+                    </div>
+                    <div class="surface-panel p-5 kpi-accent-rose">
+                        <p class="text-xs font-medium text-slate-400 mb-1">Stockout % (30D)</p>
+                        <h3 class="text-2xl font-semibold text-slate-100">4.1%</h3>
+                        <div class="flex items-center mt-2 text-xs">
+                            <span class="text-rose-400 flex items-center bg-rose-400/10 px-1.5 py-0.5 rounded mr-2">
+                                <i data-lucide="alert-circle" class="w-3 h-3 mr-1"></i> High Risk
+                            </span>
+                        </div>
+                    </div>
+                    <div class="surface-panel p-5 kpi-accent-amber">
+                        <p class="text-xs font-medium text-slate-400 mb-1">Excess Inv (>90D)</p>
+                        <h3 class="text-2xl font-semibold text-slate-100">12.0%</h3>
+                        <div class="flex items-center mt-2 text-xs">
+                            <span class="text-amber-400 flex items-center bg-amber-400/10 px-1.5 py-0.5 rounded mr-2">
+                                ₹5.1M
+                            </span>
+                            <span class="text-slate-500">Trapped</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Visuals Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Line Chart -->
+                    <div class="surface-panel p-6 lg:col-span-2">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-sm font-medium text-slate-200">Demand vs Forecast Trend</h3>
+                            <div class="flex space-x-3 text-xs">
+                                <div class="flex items-center text-slate-400"><span class="w-2 h-2 rounded-full bg-brand-500 mr-2"></span> Actual</div>
+                                <div class="flex items-center text-slate-400"><span class="w-2 h-2 rounded-full bg-slate-500 mr-2"></span> Forecast</div>
+                            </div>
+                        </div>
+                        <div class="h-64 relative w-full">
+                            <canvas id="execChart1"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Alert Panel -->
+                    <div class="surface-panel p-6 flex flex-col">
+                        <h3 class="text-sm font-medium text-slate-200 mb-4 flex items-center">
+                            <i data-lucide="bell-ring" class="w-4 h-4 mr-2 text-slate-400"></i> Attention Required
+                        </h3>
+                        
+                        <div class="space-y-3 flex-1 overflow-y-auto pr-2">
+                            <div class="p-3 bg-white/[0.02] border border-rose-500/10 rounded-lg flex items-start group hover:bg-white/[0.04] transition-colors cursor-pointer">
+                                <div class="w-8 h-8 rounded-md bg-rose-500/10 flex items-center justify-center mr-3 shrink-0">
+                                    <i data-lucide="package-minus" class="w-4 h-4 text-rose-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-slate-200 group-hover:text-brand-400 transition-colors">OOS Risk: Flagship SKU-092</p>
+                                    <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">Cover drops to 2 days next week. Promo running.</p>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-white/[0.02] border border-amber-500/10 rounded-lg flex items-start group hover:bg-white/[0.04] transition-colors cursor-pointer">
+                                <div class="w-8 h-8 rounded-md bg-amber-500/10 flex items-center justify-center mr-3 shrink-0">
+                                    <i data-lucide="truck" class="w-4 h-4 text-amber-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-slate-200 group-hover:text-brand-400 transition-colors">Supplier Delay: Vendor X</p>
+                                    <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">PO-4409 delayed by 5 days. Affects 4 SKUs.</p>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-white/[0.02] border border-brand-500/10 rounded-lg flex items-start group hover:bg-white/[0.04] transition-colors cursor-pointer">
+                                <div class="w-8 h-8 rounded-md bg-brand-500/10 flex items-center justify-center mr-3 shrink-0">
+                                    <i data-lucide="trending-up" class="w-4 h-4 text-brand-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-slate-200 group-hover:text-brand-400 transition-colors">Demand Spike: Category Y</p>
+                                    <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">+45% unexpected uplift in D2C channel.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="w-full mt-4 py-2 bg-transparent hover:bg-white/5 text-xs font-medium text-slate-300 rounded-md transition-colors border border-white/10">
+                            View All Alerts
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bottom Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                     <!-- Bar Chart -->
+                     <div class="surface-panel p-6">
+                        <h3 class="text-sm font-medium text-slate-200 mb-6">Inventory Value by Category</h3>
+                        <div class="h-56 relative w-full">
+                            <canvas id="execChart2"></canvas>
+                        </div>
+                    </div>
+                    <!-- AI Prescriptive Insights -->
+                    <div class="surface-panel p-6 relative overflow-hidden group flex flex-col">
+                        <div class="absolute top-0 right-0 p-6 opacity-5 transform group-hover:scale-110 group-hover:opacity-10 transition-all duration-500 pointer-events-none">
+                            <i data-lucide="sparkles" class="w-32 h-32 text-brand-400"></i>
+                        </div>
+                        <div class="relative z-10 flex justify-between items-start mb-4">
+                            <div>
+                                <div class="flex items-center mb-1">
+                                    <div class="w-6 h-6 rounded bg-brand-500/20 flex items-center justify-center mr-2">
+                                        <i data-lucide="cpu" class="w-3.5 h-3.5 text-brand-400"></i>
+                                    </div>
+                                    <h3 class="text-sm font-medium text-slate-200">Intelligence Copilot</h3>
+                                </div>
+                                <p class="text-xs text-slate-500">Prescriptive actions based on real-time heuristics.</p>
+                            </div>
+                            <button id="btn-gen-insights" onclick="generateExecutiveInsights()" class="px-3 py-1.5 bg-brand-600/20 hover:bg-brand-600/40 text-brand-300 text-[11px] font-medium rounded-md border border-brand-500/30 transition-all flex items-center shrink-0 ml-2">
+                                ✨ Generate AI Insights
+                            </button>
+                        </div>
+                        
+                        <div id="ai-insights-container" class="space-y-3 flex-1 relative z-10 min-h-[100px]">
+                            <div class="bg-white/[0.02] border border-white/5 hover:border-brand-500/20 p-3.5 rounded-lg flex justify-between items-center transition-colors">
+                                <div>
+                                    <p class="text-xs font-medium text-slate-200">Reduce safety stock of <span class="text-brand-400 bg-brand-400/10 px-1.5 py-0.5 rounded ml-1">SKU-123</span> by 10%</p>
+                                    <p class="text-[11px] text-emerald-400 mt-1.5 flex items-center"><i data-lucide="arrow-up-right" class="w-3 h-3 mr-1"></i> Optimizes ₹2.4M working capital</p>
+                                </div>
+                                <button class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium rounded-md border border-white/10 transition-all">Execute</button>
+                            </div>
+                            <div class="bg-white/[0.02] border border-white/5 hover:border-amber-500/20 p-3.5 rounded-lg flex justify-between items-center transition-colors">
+                                <div>
+                                    <p class="text-xs font-medium text-slate-200">Expedite PO <span class="text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded ml-1">#456</span> via Air Freight</p>
+                                    <p class="text-[11px] text-amber-400 mt-1.5 flex items-center"><i data-lucide="shield-check" class="w-3 h-3 mr-1"></i> Secures 96% target service level</p>
+                                </div>
+                                <button class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium rounded-md border border-white/10 transition-all">Review</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 TAB 2: DEMAND PLANNING
+                 ========================================== -->
+            <div id="tab-demand" class="tab-content max-w-7xl mx-auto space-y-6">
+                <div class="flex justify-between items-end mb-4">
+                    <div>
+                        <h2 class="text-2xl font-semibold text-slate-100 tracking-tight">Demand Sensing</h2>
+                        <p class="text-slate-400 text-sm mt-1">Machine learning augmented baseline and promotional uplift.</p>
+                    </div>
+                    <!-- Toggle Option -->
+                    <div class="flex bg-surface p-1 rounded-md border border-white/5">
+                        <button class="px-4 py-1.5 text-xs font-medium rounded shadow-sm bg-white/10 text-slate-100 border border-white/5">Consensus</button>
+                        <button class="px-4 py-1.5 text-xs font-medium rounded text-slate-400 hover:text-slate-200 transition-colors">Statistical</button>
+                        <button class="px-4 py-1.5 text-xs font-medium rounded text-slate-400 hover:text-slate-200 transition-colors">Promotional</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Left Sidebar KPIs -->
+                    <div class="space-y-6">
+                        <div class="surface-panel p-5">
+                            <h4 class="text-[11px] text-slate-500 uppercase tracking-widest font-semibold mb-4">Accuracy by Category</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-300 font-medium">Electronics</span><span class="text-emerald-400">88%</span></div>
+                                    <div class="w-full bg-white/5 rounded-full h-1"><div class="bg-emerald-500 h-1 rounded-full" style="width: 88%"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-300 font-medium">Apparel</span><span class="text-amber-400">72%</span></div>
+                                    <div class="w-full bg-white/5 rounded-full h-1"><div class="bg-amber-500 h-1 rounded-full" style="width: 72%"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-300 font-medium">Home Goods</span><span class="text-brand-400">81%</span></div>
+                                    <div class="w-full bg-white/5 rounded-full h-1"><div class="bg-brand-500 h-1 rounded-full" style="width: 81%"></div></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="surface-panel p-5">
+                            <h4 class="text-[11px] text-slate-500 uppercase tracking-widest font-semibold mb-3">Model Bias Analysis</h4>
+                            <div class="flex flex-col space-y-2">
+                                <div class="flex justify-between items-center p-3 bg-white/[0.02] border border-white/5 rounded-md">
+                                    <span class="text-xs font-medium text-slate-300">Overall Bias</span>
+                                    <span class="text-rose-400 text-xs font-semibold bg-rose-400/10 px-2 py-1 rounded">+4.2%</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 leading-relaxed mt-1">Slight over-forecasting detected consistently in the D2C channel models.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Chart Area -->
+                    <div class="surface-panel p-6 lg:col-span-3">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-sm font-medium text-slate-200">Historical Actuals vs Sensing Models</h3>
+                            <div class="flex space-x-4 text-xs">
+                                <div class="flex items-center text-slate-400"><span class="w-2 h-2 rounded-full bg-brand-500 mr-2"></span> Actual</div>
+                                <div class="flex items-center text-slate-400"><span class="w-2 h-2 rounded-full bg-slate-500 mr-2"></span> Baseline</div>
+                                <div class="flex items-center text-slate-400"><span class="w-2 h-2 rounded-full bg-indigo-400 mr-2"></span> Uplift</div>
+                            </div>
+                        </div>
+                        <div class="h-80 relative w-full">
+                            <canvas id="demandChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 TAB 3: INVENTORY OPTIMIZATION
+                 ========================================== -->
+            <div id="tab-inventory" class="tab-content max-w-7xl mx-auto space-y-6">
+                <div class="mb-4">
+                    <h2 class="text-2xl font-semibold text-slate-100 tracking-tight">Inventory Optimization</h2>
+                    <p class="text-slate-400 text-sm mt-1">Multi-echelon stock positioning and segmentation.</p>
+                </div>
+
+                <!-- Top KPIs -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="surface-panel p-5 text-center">
+                        <p class="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-1">Days of Inventory</p>
+                        <h3 class="text-3xl font-semibold text-slate-100">42 <span class="text-sm font-normal text-slate-500">days</span></h3>
+                    </div>
+                    <div class="surface-panel p-5 text-center">
+                        <p class="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-1">Safety Stock</p>
+                        <h3 class="text-3xl font-semibold text-slate-100">₹8.2<span class="text-sm font-normal text-slate-500">M</span></h3>
+                    </div>
+                    <div class="surface-panel p-5 text-center">
+                        <p class="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-1">Fill Rate</p>
+                        <h3 class="text-3xl font-semibold text-emerald-400">98.1%</h3>
+                    </div>
+                    <div class="surface-panel p-5 text-center">
+                        <p class="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-1">Imbalanced SKUs</p>
+                        <h3 class="text-3xl font-semibold text-amber-400">14</h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- ABC-XYZ Matrix -->
+                    <div class="surface-panel p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-sm font-medium text-slate-200">ABC-XYZ Product Segmentation</h3>
+                            <button class="text-xs text-brand-400 hover:text-brand-300 font-medium transition-colors">View Detail Grid</button>
+                        </div>
+                        
+                        <div class="relative w-full aspect-square max-h-[300px] mx-auto flex">
+                            <!-- Y axis label -->
+                            <div class="flex flex-col justify-center items-center w-8 mr-2">
+                                <span class="transform -rotate-90 text-[10px] font-semibold text-slate-500 whitespace-nowrap tracking-widest uppercase">Value (ABC)</span>
+                            </div>
+                            
+                            <div class="flex-1 flex flex-col">
+                                <!-- Grid -->
+                                <div class="flex-1 grid grid-cols-3 grid-rows-3 gap-1.5">
+                                    <!-- Row A -->
+                                    <div class="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-md flex flex-col items-center justify-center cursor-pointer transition-colors relative group">
+                                        <span class="text-base font-semibold text-emerald-400">AX</span>
+                                        <span class="text-[10px] text-slate-400 mt-0.5">45 SKUs</span>
+                                    </div>
+                                    <div class="bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 rounded-md flex flex-col items-center justify-center cursor-pointer transition-colors">
+                                        <span class="text-base font-medium text-emerald-400/80">AY</span>
+                                        <span class="text-[10px] text-slate-400 mt-0.5">22 SKUs</span>
+                                    </div>
+                                    <div class="bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/10 rounded-md flex flex-col items-center justify-center cursor-pointer transition-colors">
+                                        <span class="text-base font-medium text-amber-400/80">AZ</span>
+                                        <span class="text-[10px] text-slate-400 mt-0.5">8 SKUs</span>
+                                    </div>
+                                    <!-- Row B -->
+                                    <div class="bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 rounded-md flex flex-col items-center justify-center cursor-pointer transition-colors">
+                                        <span class="text-sm font-medium text-slate-300">BX</span>
+                                        <span class="text-[10px] text-slate-500 mt-0.5">120 SKUs</span>
+                                    </div>
+                                    <div class="bg-white/[0.02] border border-white/5 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-white/[0.04] transition-colors">
+                                        <span class="text-sm font-medium text-slate-300">BY</span>
+                                        <span class="text-[10px] text-slate-500 mt-0.5">85 SKUs</span>
+                                    </div>
+                                    <div class="bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/10 rounded-md flex flex-col items-center justify-center cursor-pointer transition-colors">
+                                        <span class="text-sm font-medium text-slate-300">BZ</span>
+                                        <span class="text-[10px] text-slate-500 mt-0.5">45 SKUs</span>
+                                    </div>
+                                    <!-- Row C -->
+                                    <div class="bg-white/[0.02] border border-white/5 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-white/[0.04] transition-colors">
+                                        <span class="text-sm font-medium text-slate-400">CX</span>
+                                        <span class="text-[10px] text-slate-500 mt-0.5">400 SKUs</span>
+                                    </div>
+                                    <div class="bg-white/[0.02] border border-white/5 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-white/[0.04] transition-colors">
+                                        <span class="text-sm font-medium text-slate-400">CY</span>
+                                        <span class="text-[10px] text-slate-500 mt-0.5">250 SKUs</span>
+                                    </div>
+                                    <div class="bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 rounded-md flex flex-col items-center justify-center cursor-pointer transition-colors">
+                                        <span class="text-sm font-medium text-rose-400/80">CZ</span>
+                                        <span class="text-[10px] text-slate-500 mt-0.5">112 SKUs</span>
+                                    </div>
+                                </div>
+                                <!-- X axis label -->
+                                <div class="h-8 flex justify-center items-end mt-2">
+                                    <span class="text-[10px] font-semibold text-slate-500 tracking-widest uppercase">Volatility (XYZ)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventory Aging Stacked Bar -->
+                    <div class="surface-panel p-6">
+                        <h3 class="text-sm font-medium text-slate-200 mb-6">Network Inventory Aging Profile</h3>
+                        <div class="h-64 relative w-full">
+                            <canvas id="invChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 TAB 4: SCENARIO PLANNING (Interactive)
+                 ========================================== -->
+            <div id="tab-scenario" class="tab-content max-w-7xl mx-auto space-y-6">
+                <div class="mb-4">
+                    <h2 class="text-2xl font-semibold text-slate-100 tracking-tight flex items-center">
+                        <i data-lucide="flask-conical" class="w-5 h-5 mr-3 text-brand-400"></i> Scenario Simulation Engine
+                    </h2>
+                    <p class="text-slate-400 text-sm mt-1">Dynamically model working capital impacts against operational variables.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Controls Panel -->
+                    <div class="surface-panel p-6 lg:col-span-5 flex flex-col">
+                        <h3 class="text-xs font-semibold text-slate-400 mb-6 uppercase tracking-widest border-b border-white/5 pb-3">Parameter Inputs</h3>
+                        
+                        <div class="space-y-8 flex-1">
+                            <div>
+                                <div class="flex justify-between text-sm mb-3">
+                                    <label class="text-slate-200 font-medium">Target Service Level</label>
+                                    <span class="text-brand-400 font-semibold bg-brand-400/10 px-2 py-0.5 rounded" id="val-sl">95%</span>
+                                </div>
+                                <input type="range" id="sim-sl" min="80" max="99" value="95" class="w-full" oninput="runSimulation()">
+                                <div class="flex justify-between text-[10px] text-slate-500 mt-2 font-medium"><span>80%</span><span>99%</span></div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-sm mb-3">
+                                    <label class="text-slate-200 font-medium">Promo Demand Uplift</label>
+                                    <span class="text-brand-400 font-semibold bg-brand-400/10 px-2 py-0.5 rounded" id="val-promo">+10%</span>
+                                </div>
+                                <input type="range" id="sim-promo" min="0" max="50" value="10" class="w-full" oninput="runSimulation()">
+                                <div class="flex justify-between text-[10px] text-slate-500 mt-2 font-medium"><span>0%</span><span>+50%</span></div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-sm mb-3">
+                                    <label class="text-slate-200 font-medium">Supplier Lead Time Delay</label>
+                                    <span class="text-brand-400 font-semibold bg-brand-400/10 px-2 py-0.5 rounded" id="val-lt">+0 Days</span>
+                                </div>
+                                <input type="range" id="sim-lt" min="0" max="30" value="0" class="w-full" oninput="runSimulation()">
+                                <div class="flex justify-between text-[10px] text-slate-500 mt-2 font-medium"><span>0 Days</span><span>+30 Days</span></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8">
+                            <button class="w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-md transition-all shadow-md shadow-brand-500/10" onclick="runSimulation()">
+                                Recalculate Scenario
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Output Panel -->
+                    <div class="surface-panel p-8 lg:col-span-7 relative overflow-hidden flex flex-col justify-center">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-brand-600/5 rounded-full blur-[80px] pointer-events-none"></div>
+
+                        <h3 class="text-xs font-semibold text-slate-400 mb-8 uppercase tracking-widest border-b border-white/5 pb-3">Projected Financial Impact</h3>
+                        
+                        <div class="grid grid-cols-2 gap-8">
+                            <div>
+                                <p class="text-xs font-medium text-slate-400 mb-2">Simulated Inventory Value</p>
+                                <div class="flex items-baseline">
+                                    <h2 class="text-4xl font-semibold text-slate-100 transition-all duration-300 tracking-tight" id="out-inv">₹42.5M</h2>
+                                    <span class="ml-3 px-2 py-0.5 rounded text-[11px] font-medium transition-all duration-300 bg-white/5 text-slate-400 border border-white/5" id="out-inv-diff">--</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <p class="text-xs font-medium text-slate-400 mb-2">Working Capital Delta</p>
+                                <div class="flex items-center">
+                                    <h2 class="text-4xl font-semibold text-slate-100 transition-all duration-300 tracking-tight" id="out-wc">₹0.0M</h2>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-6 mt-10">
+                            <div class="p-4 bg-white/[0.02] rounded-lg border border-white/5">
+                                <p class="text-[11px] font-medium text-slate-500 mb-3 uppercase tracking-wider">Service Level Viability</p>
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-md bg-emerald-500/10 flex items-center justify-center transition-colors" id="out-sl-icon-bg">
+                                        <i data-lucide="check" class="w-4 h-4 text-emerald-400 transition-colors" id="out-sl-icon"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-200 transition-colors" id="out-sl-text">Achievable</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-4 bg-white/[0.02] rounded-lg border border-white/5">
+                                <p class="text-[11px] font-medium text-slate-500 mb-3 uppercase tracking-wider">Risk Assessment</p>
+                                <div class="flex items-center space-x-3">
+                                    <span class="relative flex h-2.5 w-2.5 ml-2.5">
+                                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" id="out-risk-ping"></span>
+                                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" id="out-risk-dot"></span>
+                                    </span>
+                                    <p class="text-sm font-semibold text-emerald-400 transition-colors ml-2" id="out-risk-text">Low Risk Profile</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 TAB 5: IBP / S&OP ALIGNMENT
+                 ========================================== -->
+            <div id="tab-sop" class="tab-content max-w-7xl mx-auto space-y-6">
+                <div class="mb-4">
+                    <h2 class="text-2xl font-semibold text-slate-100 tracking-tight">IBP Strategic Alignment</h2>
+                    <p class="text-slate-400 text-sm mt-1">Bridging operational execution with financial targets.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    <!-- Traffic Lights Panel -->
+                    <div class="surface-panel p-6">
+                        <h3 class="text-sm font-medium text-slate-200 mb-6">Execution vs Budget Variance</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-4 bg-white/[0.02] rounded-lg border border-white/5">
+                                <div>
+                                    <p class="text-sm font-medium text-slate-200">Demand Volume vs AOP</p>
+                                    <p class="text-xs text-slate-500 mt-1">Variance: +1.2% (Within threshold)</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="text-xs font-semibold text-emerald-400 mr-3">ALIGNED</span>
+                                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-4 bg-white/[0.02] rounded-lg border border-white/5">
+                                <div>
+                                    <p class="text-sm font-medium text-slate-200">Inventory Investment vs Budget</p>
+                                    <p class="text-xs text-slate-500 mt-1">Variance: +6.5% (Exceeds planned capital)</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="text-xs font-semibold text-amber-400 mr-3">REVIEW</span>
+                                    <div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 bg-white/[0.02] rounded-lg border border-white/5">
+                                <div>
+                                    <p class="text-sm font-medium text-slate-200">Revenue Projection vs Target</p>
+                                    <p class="text-xs text-slate-500 mt-1">Gap: -₹2.1M (Constrained by supply)</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="text-xs font-semibold text-rose-400 mr-3">GAP IDENTIFIED</span>
+                                    <div class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metric Cards -->
+                    <div class="space-y-6">
+                        <div class="surface-panel p-6 flex items-center justify-between relative overflow-hidden">
+                            <div class="z-10">
+                                <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-1">GMROI</p>
+                                <p class="text-xs text-slate-400 mb-3">Gross Margin Return on Inventory</p>
+                                <h2 class="text-5xl font-semibold text-slate-100 tracking-tight">2.4<span class="text-2xl text-slate-500 font-normal">x</span></h2>
+                            </div>
+                            <div class="h-24 w-40 relative z-0 opacity-40">
+                                <svg viewBox="0 0 100 40" class="w-full h-full stroke-brand-500 stroke-2 fill-none stroke-linecap-round stroke-linejoin-round">
+                                    <path d="M 0 30 Q 10 25 20 28 T 40 20 T 60 15 T 80 10 T 100 5"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <div class="surface-panel p-6 border-brand-500/20 bg-brand-900/5 flex flex-col">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="text-sm font-medium text-slate-200 flex items-center">
+                                    <i data-lucide="file-text" class="w-4 h-4 mr-2 text-brand-400"></i> Executive Synthesis
+                                </h3>
+                                <button id="btn-gen-sop" onclick="generateSOPSynthesis()" class="px-3 py-1.5 bg-brand-600/20 hover:bg-brand-600/40 text-brand-300 text-[11px] font-medium rounded-md border border-brand-500/30 transition-all flex items-center shrink-0">
+                                    ✨ Draft with AI
+                                </button>
+                            </div>
+                            <div id="sop-synthesis-text" class="text-sm text-slate-400 leading-relaxed min-h-[100px]">
+                                Baseline demand remains stable. However, a recent <span class="text-slate-200 font-medium">unforecasted spike in Omnichannel</span> requires a <span class="text-amber-400 font-medium">+₹2.5M</span> working capital injection to protect the 95% service level commitment due to concurrent PO-4409 delays. 
+                                <br><br>
+                                <strong class="text-slate-200 font-medium">Recommendation:</strong> Approve expedited air freight budget to close the projected ₹2.1M revenue gap.
+                            </div>
+                            <button class="mt-5 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-200 text-xs font-medium rounded-md border border-white/10 transition-colors">Generate S&OP Slide Deck</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- App Logic & Charts -->
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // Premium Chart.js Configuration
+        Chart.defaults.color = '#64748b';
+        Chart.defaults.font.family = 'Inter';
+        Chart.defaults.font.size = 11;
+        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.95)';
+        Chart.defaults.plugins.tooltip.titleColor = '#f1f5f9';
+        Chart.defaults.plugins.tooltip.bodyColor = '#cbd5e1';
+        Chart.defaults.plugins.tooltip.padding = 12;
+        Chart.defaults.plugins.tooltip.borderColor = 'rgba(255,255,255,0.1)';
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
+        Chart.defaults.plugins.tooltip.cornerRadius = 8;
+        Chart.defaults.elements.line.tension = 0.45; // Smooth curves
+
+        let chartsInitialized = false;
+
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-white/5', 'text-brand-400');
+                btn.classList.add('text-slate-400');
+                
+                // Safely select icon (might be <i> or replaced <svg> from Lucide)
+                const icon = btn.querySelector('i, svg');
+                if (icon) {
+                    icon.classList.remove('opacity-90');
+                    icon.classList.add('opacity-70');
+                }
+            });
+            
+            btnElement.classList.add('bg-white/5', 'text-brand-400');
+            btnElement.classList.remove('text-slate-400');
+            
+            const activeIcon = btnElement.querySelector('i, svg');
+            if (activeIcon) {
+                activeIcon.classList.add('opacity-90');
+                activeIcon.classList.remove('opacity-70');
+            }
+
+            if (!chartsInitialized) {
+                initCharts();
+                chartsInitialized = true;
+            }
+        }
+
+        function initCharts() {
+            // Safely destroy existing charts
+            ['execChart1', 'execChart2', 'demandChart', 'invChart'].forEach(id => {
+                const existingChart = Chart.getChart(id);
+                if (existingChart) existingChart.destroy();
+            });
+
+            // Reusable scale options for clean minimalist look
+            const cleanScales = {
+                y: { grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }, border: { display: false } }, 
+                x: { grid: { display: false }, border: { display: false } }
+            };
+
+            // Exec Chart 1: Line
+            const ctx1 = document.getElementById('execChart1').getContext('2d');
+            let grad1 = ctx1.createLinearGradient(0, 0, 0, 300);
+            grad1.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
+            grad1.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+            new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [
+                        { label: 'Actual Demand', data: [120, 135, 125, 145, 160, 150], borderColor: '#6366f1', backgroundColor: grad1, fill: true, borderWidth: 2, pointBackgroundColor: '#0B0F19', pointBorderColor: '#6366f1', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6 },
+                        { label: 'Forecast', data: [115, 130, 130, 140, 155, 155], borderColor: '#475569', borderDash: [4, 4], borderWidth: 2, pointRadius: 0, fill: false }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: cleanScales }
+            });
+
+            // Exec Chart 2: Bar
+            const ctx2 = document.getElementById('execChart2').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['Electronics', 'Apparel', 'Home', 'Beauty'],
+                    datasets: [{
+                        label: 'Value (M)',
+                        data: [18.5, 12.0, 8.5, 3.5],
+                        backgroundColor: ['#6366f1', '#818cf8', '#34d399', '#f59e0b'],
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        barThickness: 32
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: cleanScales }
+            });
+
+            // Demand Chart
+            const ctxDemand = document.getElementById('demandChart').getContext('2d');
+            let gradDemand = ctxDemand.createLinearGradient(0, 0, 0, 300);
+            gradDemand.addColorStop(0, 'rgba(129, 140, 248, 0.2)');
+            gradDemand.addColorStop(1, 'rgba(129, 140, 248, 0)');
+
+            new Chart(ctxDemand, {
+                type: 'line',
+                data: {
+                    labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10', 'W11', 'W12'],
+                    datasets: [
+                        { label: 'Sales', data: [50, 55, 52, 60, 85, 90, 65, 55, 50, 48, 52, 55], borderColor: '#6366f1', borderWidth: 2, pointRadius: 2 },
+                        { label: 'Baseline', data: [48, 52, 54, 58, 60, 62, 60, 58, 54, 50, 48, 50], borderColor: '#475569', borderDash: [4, 4], borderWidth: 2, pointRadius: 0 },
+                        { label: 'Promo Forecast', data: [null, null, null, 60, 88, 95, 65, null, null, null, null, null], borderColor: '#818cf8', backgroundColor: gradDemand, fill: true, borderWidth: 2, pointRadius: 0 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: cleanScales }
+            });
+
+            // Inventory Aging Stacked Bar
+            const ctxInv = document.getElementById('invChart').getContext('2d');
+            new Chart(ctxInv, {
+                type: 'bar',
+                data: {
+                    labels: ['WH-North', 'WH-South', 'WH-East', 'WH-West'],
+                    datasets: [
+                        { label: '0-30 Days', data: [40, 35, 50, 30], backgroundColor: '#10b981', borderRadius: {bottomLeft: 4, bottomRight: 4} },
+                        { label: '30-60 Days', data: [20, 25, 15, 20], backgroundColor: '#3b82f6' },
+                        { label: '60-90 Days', data: [10, 15, 5, 10], backgroundColor: '#f59e0b' },
+                        { label: '>90 Days (Excess)', data: [5, 10, 2, 15], backgroundColor: '#f43f5e', borderRadius: {topLeft: 4, topRight: 4} }
+                    ]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true, padding: 20, color: '#94a3b8' } } },
+                    scales: { 
+                        x: { stacked: true, grid: { display: false }, border: { display: false } }, 
+                        y: { stacked: true, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false } } 
+                    },
+                    barThickness: 40
+                }
+            });
+        }
+
+        // Initialize charts on first load for the active tab
+        setTimeout(() => {
+            if (!chartsInitialized) {
+                initCharts();
+                chartsInitialized = true;
+            }
+        }, 100);
+
+        // Scenario Engine Logic
+        const baseInv = 42.5; 
+        function runSimulation() {
+            const sl = parseInt(document.getElementById('sim-sl').value);
+            const promo = parseInt(document.getElementById('sim-promo').value);
+            const lt = parseInt(document.getElementById('sim-lt').value);
+
+            document.getElementById('val-sl').innerText = sl + '%';
+            document.getElementById('val-promo').innerText = '+' + promo + '%';
+            document.getElementById('val-lt').innerText = '+' + lt + ' Days';
+
+            let slMultiplier = sl <= 95 ? 1 + ((sl-95)*0.02) : 1 + Math.pow((sl - 95), 1.5) * 0.05;
+            let promoAdder = promo * 0.1; 
+            let ltAdder = lt * 0.5; 
+
+            let newInv = (baseInv * slMultiplier) + promoAdder + ltAdder;
+            let diff = newInv - baseInv;
+            let wcChange = diff;
+
+            const invEl = document.getElementById('out-inv');
+            const diffEl = document.getElementById('out-inv-diff');
+            const wcEl = document.getElementById('out-wc');
+
+            invEl.innerText = '₹' + newInv.toFixed(1) + 'M';
+            
+            if (diff > 0) {
+                diffEl.innerText = '+₹' + diff.toFixed(1) + 'M';
+                diffEl.className = "ml-3 px-2 py-0.5 rounded text-[11px] font-semibold transition-all duration-300 bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                wcEl.innerText = '+₹' + wcChange.toFixed(1) + 'M Required';
+                wcEl.classList.remove('text-emerald-400');
+                wcEl.classList.add('text-amber-400');
+            } else if (diff < 0) {
+                diffEl.innerText = '-₹' + Math.abs(diff).toFixed(1) + 'M';
+                diffEl.className = "ml-3 px-2 py-0.5 rounded text-[11px] font-semibold transition-all duration-300 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                wcEl.innerText = '₹' + Math.abs(wcChange).toFixed(1) + 'M Released';
+                wcEl.classList.remove('text-amber-400');
+                wcEl.classList.add('text-emerald-400');
+            } else {
+                diffEl.innerText = 'No Change';
+                diffEl.className = "ml-3 px-2 py-0.5 rounded text-[11px] font-medium transition-all duration-300 bg-white/5 text-slate-400 border border-white/5";
+                wcEl.innerText = '₹0.0M';
+                wcEl.className = "text-4xl font-semibold text-slate-100 transition-all duration-300 tracking-tight";
+            }
+
+            let riskText = 'Low Risk Profile';
+            let riskColor = 'emerald';
+            if (lt > 15 || sl > 98) { riskText = 'High Risk Exposure'; riskColor = 'rose'; }
+            else if (lt > 5 || promo > 20 || sl > 96) { riskText = 'Moderate Risk'; riskColor = 'amber'; }
+
+            document.getElementById('out-risk-text').innerText = riskText;
+            document.getElementById('out-risk-text').className = `text-sm font-semibold transition-colors text-${riskColor}-400 ml-2`;
+            document.getElementById('out-risk-ping').className = `animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-${riskColor}-400`;
+            document.getElementById('out-risk-dot').className = `relative inline-flex rounded-full h-2.5 w-2.5 bg-${riskColor}-500`;
+
+            const slIconBg = document.getElementById('out-sl-icon-bg');
+            const slText = document.getElementById('out-sl-text');
+
+            // Safely overwrite the innerHTML to handle dynamic Lucide SVG replacements
+            if (lt > 20 && sl > 95) {
+                slIconBg.className = "w-8 h-8 rounded-md bg-rose-500/10 flex items-center justify-center transition-colors";
+                slIconBg.innerHTML = `<i data-lucide="x" class="w-4 h-4 text-rose-400 transition-colors"></i>`;
+                slText.innerText = 'Unachievable under current constraints';
+            } else {
+                slIconBg.className = "w-8 h-8 rounded-md bg-emerald-500/10 flex items-center justify-center transition-colors";
+                slIconBg.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400 transition-colors"></i>`;
+                slText.innerText = 'Achievable target';
+            }
+            lucide.createIcons();
+        }
+
+        // ==========================================
+        // GEMINI API INTEGRATION
+        // ==========================================
+        const apiKey = ""; // Set automatically by execution environment
+
+        async function fetchGemini(prompt, isJson = false) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: "You are an expert AI Supply Chain Control Tower Copilot." }] }
+            };
+
+            // Enforce structured JSON output if requested
+            if (isJson) {
+                payload.generationConfig = { 
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            insights: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        action: { type: "STRING" },
+                                        impact: { type: "STRING" },
+                                        type: { type: "STRING" } // "risk" or "opportunity"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+            }
+
+            // Execute with exponential backoff
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    if (result.candidates && result.candidates[0].content.parts[0].text) {
+                        return result.candidates[0].content.parts[0].text;
+                    }
+                    throw new Error("Invalid response format");
+                } catch (error) {
+                    if (i === 2) throw error;
+                    await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
+                }
+            }
+        }
+
+        async function generateExecutiveInsights() {
+            const btn = document.getElementById('btn-gen-insights');
+            const container = document.getElementById('ai-insights-container');
+            
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 mr-1 animate-spin"></i> Analyzing...`;
+            lucide.createIcons();
+            btn.disabled = true;
+
+            const prompt = `Analyze these live Supply Chain KPIs from the Control Tower:
+            - Target Service Level: 95% (Currently 96.4%)
+            - Forecast Accuracy (MAPE): 18.2%
+            - Inventory Value: ₹42.5M
+            - Stockout %: 4.1% (Critical Watch)
+            - Excess Inv: 12% (>90 days)
+            
+            Provide exactly 2 highly specific, prescriptive actions that a planner can execute right now. 
+            One must address mitigating the high stockout risk, and one must address reducing the excess inventory. Keep descriptions short and punchy.`;
+
+            try {
+                const responseText = await fetchGemini(prompt, true);
+                const data = JSON.parse(responseText);
+                
+                container.innerHTML = '';
+                data.insights.forEach(insight => {
+                    const icon = insight.type === 'risk' ? 'shield-alert' : 'arrow-up-right';
+                    const colorClass = insight.type === 'risk' ? 'text-rose-400' : 'text-emerald-400';
+                    const bgHoverClass = insight.type === 'risk' ? 'hover:border-rose-500/20' : 'hover:border-emerald-500/20';
+                    
+                    container.innerHTML += `
+                        <div class="bg-white/[0.02] border border-white/5 ${bgHoverClass} p-3.5 rounded-lg flex justify-between items-center transition-colors">
+                            <div>
+                                <p class="text-xs font-medium text-slate-200">${insight.action}</p>
+                                <p class="text-[11px] ${colorClass} mt-1.5 flex items-center"><i data-lucide="${icon}" class="w-3 h-3 mr-1"></i> ${insight.impact}</p>
+                            </div>
+                            <button class="px-3 py-1.5 bg-white/5 hover:bg-brand-600/30 text-slate-300 hover:text-brand-300 text-xs font-medium rounded-md border border-white/10 hover:border-brand-500/30 transition-all shrink-0 ml-3">Review</button>
+                        </div>
+                    `;
+                });
+                lucide.createIcons();
+            } catch (error) {
+                console.error("AI Insights Error:", error);
+                container.innerHTML = `<p class="text-[11px] text-rose-400 flex items-center p-3 bg-rose-500/10 rounded border border-rose-500/20"><i data-lucide="alert-triangle" class="w-4 h-4 mr-2"></i> Failed to generate intelligence. Please ensure your API key is configured.</p>`;
+                lucide.createIcons();
+            } finally {
+                btn.innerHTML = `✨ Regenerate`;
+                btn.disabled = false;
+            }
+        }
+
+        async function generateSOPSynthesis() {
+            const btn = document.getElementById('btn-gen-sop');
+            const textContainer = document.getElementById('sop-synthesis-text');
+            
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 mr-1 animate-spin"></i> Drafting...`;
+            lucide.createIcons();
+            btn.disabled = true;
+
+            const prompt = `You are a Chief Supply Chain Officer. Write a 3-sentence Executive Synthesis for the upcoming S&OP meeting based on these operational variances:
+            - Demand Volume vs AOP: +1.2% (Aligned)
+            - Inventory Investment vs Budget: +6.5% (Exceeds planned capital - requires review)
+            - Revenue Projection vs Target: Gap of -₹2.1M identified due to supplier constraints.
+            
+            Write it as a seamless, professional paragraph with a strategic tone. Emphasize the working capital anomaly and the revenue gap. 
+            Do not use markdown. Use HTML <strong> tags to make key financial metrics or recommendations pop.`;
+
+            try {
+                const responseText = await fetchGemini(prompt, false);
+                textContainer.innerHTML = responseText;
+            } catch (error) {
+                console.error("S&OP AI Error:", error);
+                textContainer.innerHTML = `<span class="text-rose-400">Failed to generate synthesis. Ensure API key is configured.</span>`;
+            } finally {
+                btn.innerHTML = `✨ Redraft`;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
